@@ -2,6 +2,9 @@ import express from "express";
 import multer from "multer";
 import CommunityPage from "../models/CommunityPage.js";
 
+
+import SelectedCommunities from "../models/SelectedCommunities.js";
+
 const router = express.Router();
 
 /* ================= MULTER CONFIG ================= */
@@ -34,6 +37,8 @@ router.post(
         slug: body.slug,
         tagline: body.tagline,
         description: body.description,
+        schools: body.schools,
+        safety: body.safety,
 
         commute: {
           downtown: body.downtown,
@@ -132,6 +137,53 @@ router.delete("/admin/community-pages/:id", async (req, res) => {
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to delete page" });
+  }
+});
+
+
+router.post("/save-selected", async (req, res) => {
+  try {
+    const { selected } = req.body;
+
+    if (!Array.isArray(selected)) {
+      return res.status(400).json({ message: "Invalid data format" });
+    }
+
+    // Check if record exists
+    let record = await SelectedCommunities.findOne();
+
+    if (record) {
+      record.selected = selected;
+      await record.save();
+    } else {
+      await SelectedCommunities.create({ selected });
+    }
+
+    res.json({ message: "Selected communities saved successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+/* ================================
+   GET SELECTED COMMUNITIES
+================================ */
+
+router.get("/selected", async (req, res) => {
+  try {
+    const record = await SelectedCommunities.findOne();
+
+    if (!record) {
+      return res.json({ selected: [] });
+    }
+
+    res.json({ selected: record.selected });
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 
