@@ -187,4 +187,20 @@ router.get("/selected", async (req, res) => {
   }
 });
 
+router.get("/public", async (req, res) => {
+  try {
+    const record = await SelectedCommunities.findOne();
+    const selectedIds = record?.selected || [];
+
+    const communities = await CommunityPage.find({
+      _id: { $in: selectedIds }
+    });
+
+    res.json(communities);
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
