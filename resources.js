@@ -4,12 +4,20 @@ import fs from "fs";
 import path from "path";
 import Resource from "../models/Resource.js";
 
+
 const router = express.Router();
 
 /* ===============================
    CREATE UPLOAD FOLDER IF MISSING
 ================================ */
-const uploadDir = "uploads/resources";
+// const uploadDir = "uploads_resources/resources";
+const uploadDir = path.join(
+  process.cwd(),
+  "uploads_resources",
+  "resources"
+);
+
+
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -55,7 +63,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 
     const newResource = new Resource({
       title,
-      fileUrl: `/uploads/resources/${req.file.filename}`,
+      fileUrl: `/uploads_resources/resources/${req.file.filename}`,
       fileName: req.file.filename,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
@@ -110,5 +118,35 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: "Delete failed" });
   }
 });
+
+
+
+/* ===============================
+   DOWNLOAD RESOURCE + INCREMENT
+================================ */
+router.get("/download/:id", async (req, res) => {
+  try {
+    const resource = await Resource.findById(req.params.id);
+
+    if (!resource) {
+      return res.status(404).json({ message: "Resource not found" });
+    }
+
+    // Increment download count
+    resource.downloads += 1;
+    await resource.save();
+
+    const filePath = path.join(
+      process.cwd(),
+      resource.fileUrl.replace(/^\/+/, "")
+    );
+
+    res.download(filePath, resource.fileName);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Download failed" });
+  }
+});
+
 
 export default router;
